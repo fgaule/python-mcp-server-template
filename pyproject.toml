@@ -1,0 +1,25 @@
+[project]
+name = "python-mcp-server-template"
+version = "1.0.0"
+description = "A production-ready, fully customizable Python server template for building modern, API-driven microservices using the MCP (Modular Cloud Platform) architecture. Easily adaptable for any company or project—just fill in your own configuration, endpoints, and business logic."
+authors = [
+    { name = "Federico Gaule", email = "federico.gaule@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cachetools>=5.5.2",
+    "ddtrace>=3.9.1",
+    "httpx>=0.28.1",
+    "fastmcp>=2.9.2",
+    "prometheusrock>=0.2.0",    
+    "python-json-logger>=3.3.0",
+    "uvicorn>=0.34.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=4.1.0",
+    "pyright>=1.1.0",
+]

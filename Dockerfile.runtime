@@ -1,0 +1,74 @@
+# syntax=docker/dockerfile:1.10.0
+################################################################################
+# build stage: BUILD STAGE 
+################################################################################
+FROM python:3.13-alpine3.20 AS build
+
+RUN apk add --no-cache make
+
+# Install uv (dependency manager) from the official image for speed and reliability
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Set UV_LINK_MODE=copy to suppress uv hardlink warnings when cache and target directories are on different filesystems (common in Docker on macOS)
+ENV UV_LINK_MODE=copy
+
+WORKDIR /app
+
+# Install dependencies only (not the project itself)
+# Third-party packages your app uses are updated less frequently than your own application code.
+# This layer will be cached unless dependencies change, speeding up rebuilds.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+
+# Copy the entire project into the image (source code, configs, etc.)
+COPY . .
+
+# Sync the project. 
+# When you change only your application code, Docker reuses the cached dependencies layer, making builds much faster.
+# --no-editable instructs uv to install the project in non-editable mode, removing any dependency on the source code.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-editable
+
+################################################################################
+# build stage: TEST STAGE 
+################################################################################
+FROM build AS test
+
+ENTRYPOINT ["make"]
+CMD ["coverage-test", "COBERTURA_FILE=/out/cobertura.xml"]
+
+################################################################################
+# build stage: RELEASE STAGE 
+################################################################################
+FROM python:3.13-alpine3.20 AS release
+
+WORKDIR /app
+
+# Copy the environment with all dependencies from the build stage. 
+# It is important to keep the same directory as some files (like ddtrce-run) have the installation directory as a shebang
+COPY --from=build  /app/.venv /app/.venv
+
+# Ensure the venv's bin directory is in the PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy the application source code from the build stage to the release image
+COPY --from=build  /app/src .
+COPY --from=build  /app/config config
+
+# Copy the entrypoint script
+COPY deploy/entrypoint.sh entrypoint.sh
+
+# Make the entrypoint script executable
+RUN chmod 755 entrypoint.sh
+
+# Expose the application port
+EXPOSE 8080
+
+HEALTHCHECK CMD curl -f http://localhost:8080/healthz || exit 1
+
+# Run the application
+CMD ["./entrypoint.sh"]

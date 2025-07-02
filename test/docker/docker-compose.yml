@@ -1,0 +1,22 @@
+services:
+  test:
+    image: lending-marketplace-mcp:test
+    command: test ARGS="-m integration"
+    profiles: [cicd-test]
+    links:
+      - localstack
+    depends_on:
+      - localstack
+  localstack:
+    container_name: "lending-marketplace-mcp-localstack"
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=dynamodb
+      - AWS_DEFAULT_REGION=us-west-2
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:4566/health?reload"]
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

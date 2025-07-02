@@ -1,0 +1,9 @@
+.idea
+tmp
+.DS_Store
+lending-marketplace-mcp
+**/__pycache__
+.coverage
+.env
+volume
+cobertura.xml
