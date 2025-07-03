@@ -86,7 +86,9 @@ Expected response:
    ```bash
    open ~/Library/Application\ Support/Claude
    ```
-2. Create or edit `claude_desktop_config.json`:
+2. Go to Claude -> Settings -> Developer -> Edit Config
+
+3. Create or edit `claude_desktop_config.json`:
    ```json
    {
      "mcpServers": {
